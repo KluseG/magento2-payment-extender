@@ -3,17 +3,11 @@
 namespace Kluseg\PaymentExtender\Model;
 
 use Kluseg\PaymentExtender\Api\MetaManagerInterface;
-use Magento\Sales\Api\OrderRepositoryInterface;
 use Magento\Quote\Api\CartRepositoryInterface;
 use Magento\Quote\Api\GuestCartRepositoryInterface;
 
 class MetaManager extends ManagerBase implements MetaManagerInterface
 {
-    /**
-     * @var OrderRepositoryInterface
-     */
-    private $orderRepository;
-
     /**
      * @var GuestCartRepositoryInterface
      */
@@ -24,16 +18,18 @@ class MetaManager extends ManagerBase implements MetaManagerInterface
      */
     private $cartRepository;
 
-    public function __construct(OrderRepositoryInterface $orderRepository, GuestCartRepositoryInterface $guestCartRepository, CartRepositoryInterface $cartRepository)
+    public function __construct(GuestCartRepositoryInterface $guestCartRepository, CartRepositoryInterface $cartRepository)
     {
-        $this->orderRepository = $orderRepository;
         $this->guestCartRepository = $guestCartRepository;
         $this->cartRepository = $cartRepository;
     }
 
     public function guestById($cartId)
     {
-        return $this->guestCartRepository->get($cartId);
+        $cart = $this->guestCartRepository->get($cartId);
+
+        return Mage::getSingleton('sales/quote')
+            ->load($cart['reserved_order_id'], 'reserved_order_id');
     }
 
     public function byId($cartId)
