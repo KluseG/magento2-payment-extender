@@ -1,0 +1,10 @@
+<?xml version="1.0"?>
+<routes xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:module:Magento_Webapi:etc/webapi.xsd">
+    <!-- Cms Page -->
+    <route url="/V1/guest-carts/:cartId/order-meta" method="GET">
+        <service class="Kluseg\PaymentExtender\Api\MetaManagerInterface" method="guestById"/>
+        <resources>
+            <resource ref="anonymous"/>
+        </resources>
+    </route>
+</routes>
