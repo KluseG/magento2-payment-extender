@@ -3,36 +3,100 @@
 namespace Kluseg\PaymentExtender\Model;
 
 use Kluseg\PaymentExtender\Api\MetaManagerInterface;
-use Magento\Quote\Api\CartRepositoryInterface;
-use Magento\Quote\Api\GuestCartRepositoryInterface;
 
-class MetaManager extends ManagerBase implements MetaManagerInterface
+use Magento\Framework\App\ObjectManager;
+use Magento\Payment\Api\Data\PaymentAdditionalInfoInterface;
+use Magento\Payment\Api\Data\PaymentAdditionalInfoInterfaceFactory;
+use Magento\Quote\Model\QuoteIdMaskFactory;
+use Magento\Sales\Api\Data\OrderInterface;
+use Magento\Sales\Api\OrderRepositoryInterface;
+use Magento\Sales\Model\ResourceModel\Metadata;
+
+class MetaManager implements MetaManagerInterface
 {
     /**
-     * @var GuestCartRepositoryInterface
-     */
-    private $guestCartRepository;
+       * @var QuoteIdMaskFactory
+       */
+    protected $quoteIdMaskFactory;
 
     /**
-     * @var CartRepositoryInterface
+     * @var OrderRepositoryInterface
      */
-    private $cartRepository;
+    protected $orderRepository;
 
-    public function __construct(GuestCartRepositoryInterface $guestCartRepository, CartRepositoryInterface $cartRepository)
-    {
-        $this->guestCartRepository = $guestCartRepository;
-        $this->cartRepository = $cartRepository;
+    /**
+     * @var Metadata
+     */
+    protected $metadata;
+
+    /**
+     * @var PaymentAdditionalInfoFactory
+     */
+    private $paymentAdditionalInfoFactory;
+
+    /**
+     * Initialize dependencies.
+     *
+     * @param QuoteIdMaskFactory $quoteIdMaskFactory
+     */
+    public function __construct(
+        Metadata $metadata,
+        PaymentAdditionalInfoInterfaceFactory $paymentAdditionalInfoFactory = null,
+        QuoteIdMaskFactory $quoteIdMaskFactory,
+        OrderRepositoryInterface $orderRepository
+    ) {
+        $this->quoteIdMaskFactory = $quoteIdMaskFactory;
+        $this->orderRepository = $orderRepository;
+        $this->metadata = $metadata;
+
+        $this->paymentAdditionalInfoFactory = $paymentAdditionalInfoFactory ?: ObjectManager::getInstance()
+            ->get(PaymentAdditionalInfoInterfaceFactory::class);
     }
 
     public function guestById($cartId)
     {
-        $cart = $this->guestCartRepository->get($cartId);
+        $cartId = $this->getCartId($cartId);
+        $entity = $this->metadata->getNewInstance()->load($cartId, 'quote_id');
 
-        return Mage::getSingleton('sales/quote')
-            ->load($cart['reserved_order_id'], 'reserved_order_id');
+        $this->setPaymentAdditionalInfo($entity);
+
+        return $entity;
     }
 
     public function byId($cartId)
     {
+    }
+
+    protected function getCartId($cartId)
+    {
+        return $this->quoteIdMaskFactory->create()->load($cartId, 'masked_id')->getQuoteId();
+    }
+
+    /**
+     * Set additional info to the order.
+     *
+     * @param OrderInterface $order
+     * @return void
+     */
+    private function setPaymentAdditionalInfo(OrderInterface $order): void
+    {
+        $extensionAttributes = $order->getExtensionAttributes();
+        $paymentAdditionalInformation = $order->getPayment()->getAdditionalInformation();
+
+        $objects = [];
+        foreach ($paymentAdditionalInformation as $key => $value) {
+            /** @var PaymentAdditionalInfoInterface $additionalInformationObject */
+            $additionalInformationObject = $this->paymentAdditionalInfoFactory->create();
+            $additionalInformationObject->setKey($key);
+
+            if (!is_string($value)) {
+                $value = $this->serializer->serialize($value);
+            }
+            $additionalInformationObject->setValue($value);
+
+            $objects[] = $additionalInformationObject;
+        }
+        $extensionAttributes->setPaymentAdditionalInfo($objects);
+        $order->setExtensionAttributes($extensionAttributes);
     }
 }
