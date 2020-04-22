@@ -33,7 +33,7 @@ class MetaManager extends ManagerBase implements MetaManagerInterface
 
     public function guestById($cartId)
     {
-        return $this->guestCartRepository->getById($cartId);
+        return $this->guestCartRepository->get($cartId);
     }
 
     public function byId($cartId)
