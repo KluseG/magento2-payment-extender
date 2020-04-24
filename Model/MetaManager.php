@@ -11,6 +11,7 @@ use Magento\Quote\Model\QuoteIdMaskFactory;
 use Magento\Sales\Api\Data\OrderInterface;
 use Magento\Sales\Api\OrderRepositoryInterface;
 use Magento\Sales\Model\ResourceModel\Metadata;
+use Magento\Framework\Serialize\Serializer\Json as JsonSerializer;
 
 class MetaManager implements MetaManagerInterface
 {
@@ -35,6 +36,11 @@ class MetaManager implements MetaManagerInterface
     private $paymentAdditionalInfoFactory;
 
     /**
+     * @var JsonSerializer
+     */
+    private $serializer;
+
+    /**
      * Initialize dependencies.
      *
      * @param QuoteIdMaskFactory $quoteIdMaskFactory
@@ -43,7 +49,8 @@ class MetaManager implements MetaManagerInterface
         Metadata $metadata,
         PaymentAdditionalInfoInterfaceFactory $paymentAdditionalInfoFactory = null,
         QuoteIdMaskFactory $quoteIdMaskFactory,
-        OrderRepositoryInterface $orderRepository
+        OrderRepositoryInterface $orderRepository,
+        JsonSerializer $serializer = null
     ) {
         $this->quoteIdMaskFactory = $quoteIdMaskFactory;
         $this->orderRepository = $orderRepository;
@@ -51,6 +58,8 @@ class MetaManager implements MetaManagerInterface
 
         $this->paymentAdditionalInfoFactory = $paymentAdditionalInfoFactory ?: ObjectManager::getInstance()
             ->get(PaymentAdditionalInfoInterfaceFactory::class);
+        $this->serializer = $serializer ?: ObjectManager::getInstance()
+            ->get(JsonSerializer::class);
     }
 
     public function guestById($cartId)
