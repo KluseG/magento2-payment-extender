@@ -74,6 +74,9 @@ class MetaManager implements MetaManagerInterface
 
     public function byId($cartId)
     {
+        if (!is_numeric($cartId)) {
+            $cartId = $this->getCartId($cartId);
+        }
         $entity = $this->metadata->getNewInstance()->load($cartId, 'quote_id');
 
         $this->setPaymentAdditionalInfo($entity);
