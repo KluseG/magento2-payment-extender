@@ -3,21 +3,20 @@
 namespace Kluseg\PaymentExtender\Model;
 
 use Kluseg\PaymentExtender\Api\MetaManagerInterface;
-
 use Magento\Framework\App\ObjectManager;
+use Magento\Framework\Serialize\Serializer\Json as JsonSerializer;
 use Magento\Payment\Api\Data\PaymentAdditionalInfoInterface;
 use Magento\Payment\Api\Data\PaymentAdditionalInfoInterfaceFactory;
 use Magento\Quote\Model\QuoteIdMaskFactory;
 use Magento\Sales\Api\Data\OrderInterface;
 use Magento\Sales\Api\OrderRepositoryInterface;
 use Magento\Sales\Model\ResourceModel\Metadata;
-use Magento\Framework\Serialize\Serializer\Json as JsonSerializer;
 
 class MetaManager implements MetaManagerInterface
 {
     /**
-       * @var QuoteIdMaskFactory
-       */
+     * @var QuoteIdMaskFactory
+     */
     protected $quoteIdMaskFactory;
 
     /**
@@ -51,7 +50,8 @@ class MetaManager implements MetaManagerInterface
         QuoteIdMaskFactory $quoteIdMaskFactory,
         OrderRepositoryInterface $orderRepository,
         JsonSerializer $serializer = null
-    ) {
+    )
+    {
         $this->quoteIdMaskFactory = $quoteIdMaskFactory;
         $this->orderRepository = $orderRepository;
         $this->metadata = $metadata;
@@ -65,18 +65,6 @@ class MetaManager implements MetaManagerInterface
     public function guestById($cartId)
     {
         $cartId = $this->getCartId($cartId);
-        $entity = $this->metadata->getNewInstance()->load($cartId, 'quote_id');
-
-        $this->setPaymentAdditionalInfo($entity);
-
-        return $entity;
-    }
-
-    public function byId($cartId)
-    {
-        if (!is_numeric($cartId)) {
-            $cartId = $this->getCartId($cartId);
-        }
         $entity = $this->metadata->getNewInstance()->load($cartId, 'quote_id');
 
         $this->setPaymentAdditionalInfo($entity);
@@ -98,7 +86,11 @@ class MetaManager implements MetaManagerInterface
     private function setPaymentAdditionalInfo(OrderInterface $order): void
     {
         $extensionAttributes = $order->getExtensionAttributes();
-        $paymentAdditionalInformation = $order->getPayment()->getAdditionalInformation();
+        $payment = $order->getPayment();
+        $paymentAdditionalInformation = [];
+        if ($payment) {
+            $paymentAdditionalInformation = $payment->getAdditionalInformation();
+        }
 
         $objects = [];
         foreach ($paymentAdditionalInformation as $key => $value) {
@@ -115,5 +107,17 @@ class MetaManager implements MetaManagerInterface
         }
         $extensionAttributes->setPaymentAdditionalInfo($objects);
         $order->setExtensionAttributes($extensionAttributes);
+    }
+
+    public function byId($cartId)
+    {
+        if (!is_numeric($cartId)) {
+            $cartId = $this->getCartId($cartId);
+        }
+        $entity = $this->metadata->getNewInstance()->load($cartId, 'quote_id');
+
+        $this->setPaymentAdditionalInfo($entity);
+
+        return $entity;
     }
 }
